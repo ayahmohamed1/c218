@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { INVITATION_DATA } from './invitationData';
+import { db } from './firebase';
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
 export default function App() {
   const [isOpened, setIsOpened] = useState(false);
@@ -9,12 +11,88 @@ export default function App() {
   // RSVP Form State
   const [rsvpName, setRsvpName] = useState('');
   const [rsvpMessage, setRsvpMessage] = useState('');
+  const [rsvpAttendance, setRsvpAttendance] = useState('attending');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [rsvpSubmitted, setRsvpSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
-  const handleRsvpSubmit = (e) => {
+  // Real-time Guestbook Messages State
+  const [liveMessages, setLiveMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+
+  // Subscribe to real-time RSVP messages from Firebase
+  useEffect(() => {
+    try {
+      const q = query(collection(db, 'rsvps'), orderBy('createdAt', 'desc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const msgs = [];
+        snapshot.forEach((doc) => {
+          msgs.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        setLiveMessages(msgs);
+        setMessagesLoading(false);
+      }, (error) => {
+        console.error('Error fetching RSVPs from Firestore:', error);
+        setMessagesLoading(false);
+      });
+      return () => unsubscribe();
+    } catch (err) {
+      console.error('Error setting up RSVP listener:', err);
+      setMessagesLoading(false);
+    }
+  }, []);
+
+  const handleRsvpSubmit = async (e) => {
     e.preventDefault();
-    if (!rsvpName.trim()) return;
-    setRsvpSubmitted(true);
+    if (!rsvpName.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    try {
+      await addDoc(collection(db, 'rsvps'), {
+        name: rsvpName.trim(),
+        message: rsvpMessage.trim(),
+        attendance: rsvpAttendance,
+        createdAt: serverTimestamp(),
+        timestamp: Date.now()
+      });
+      setRsvpSubmitted(true);
+      setRsvpName('');
+      setRsvpMessage('');
+    } catch (error) {
+      console.error('Error saving RSVP to Firestore:', error);
+      if (error?.code === 'permission-denied') {
+        setSubmitError('تنبيه: يجب تعديل قواعد فايربيس (Firestore Rules) لتفعيل القراءة والكتابة: allow read, write: if true;');
+      } else {
+        setSubmitError('تعذر حفظ الرسالة، يرجى المحاولة مرة أخرى.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const formatMessageTime = (msg) => {
+    if (msg.createdAt && msg.createdAt.toDate) {
+      return msg.createdAt.toDate().toLocaleDateString('ar-EG', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    if (msg.timestamp) {
+      return new Date(msg.timestamp).toLocaleDateString('ar-EG', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    return 'الآن';
   };
 
   const audioRef = useRef(null);
@@ -256,24 +334,53 @@ export default function App() {
                     <h5 className="rsvp-success-heading">
                       {INVITATION_DATA.rsvp?.successHeading || "THANK YOU!"}
                     </h5>
+                    <p className="rsvp-success-desc">
+                      {INVITATION_DATA.rsvp?.successMessage || "Your message has been received with love for Seif & Habiba ❤️"}
+                    </p>
+                    <button 
+                      type="button" 
+                      className="rsvp-send-another-btn"
+                      onClick={() => setRsvpSubmitted(false)}
+                    >
+                      إرسال رسالة أو تأكيد آخر ✍️
+                    </button>
                   </div>
                 ) : (
                   <form onSubmit={handleRsvpSubmit}>
-                    {/* Name Input without top label */}
+                    {/* Attendance Confirmation Toggle */}
+                    <div className="rsvp-attendance-row">
+                      <button
+                        type="button"
+                        className={`attendance-chip ${rsvpAttendance === 'attending' ? 'active' : ''}`}
+                        onClick={() => setRsvpAttendance('attending')}
+                      >
+                        ✓ سأحضر بكل سرور
+                      </button>
+                      <button
+                        type="button"
+                        className={`attendance-chip ${rsvpAttendance === 'apologize' ? 'active' : ''}`}
+                        onClick={() => setRsvpAttendance('apologize')}
+                      >
+                        ✕ أعتذر عن الحضور
+                      </button>
+                    </div>
+
+                    {/* Name Input */}
                     <div className="rsvp-form-group">
                       <input 
                         id="rsvp-name"
                         type="text" 
                         className="rsvp-input"
-                        placeholder={INVITATION_DATA.rsvp?.namePlaceholder || "Name"}
+                        placeholder={INVITATION_DATA.rsvp?.namePlaceholder || "Name / الاسم"}
                         value={rsvpName}
                         onChange={(e) => setRsvpName(e.target.value)}
                         required
+                        disabled={isSubmitting}
                         dir="auto"
                       />
                     </div>
 
-                    {/* Message for Couple without top label */}
+                    {/* Message for Couple */}
                     <div className="rsvp-form-group">
                       <textarea 
                         id="rsvp-message"
@@ -282,16 +389,81 @@ export default function App() {
                         value={rsvpMessage}
                         onChange={(e) => setRsvpMessage(e.target.value)}
                         rows="3"
+                        disabled={isSubmitting}
                         dir="auto"
                       ></textarea>
                     </div>
 
+                    {submitError && (
+                      <div className="rsvp-error-banner">
+                        <span>⚠️</span> {submitError}
+                      </div>
+                    )}
+
                     {/* Submit Button */}
-                    <button type="submit" className="rsvp-submit-btn">
-                      {INVITATION_DATA.rsvp?.submitText || "SEND RSVP"}
+                    <button 
+                      type="submit" 
+                      className={`rsvp-submit-btn ${isSubmitting ? 'submitting' : ''}`}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "SENDING..." : (INVITATION_DATA.rsvp?.submitText || "SEND RSVP")}
                     </button>
                   </form>
                 )}
+              </div>
+
+              {/* REAL-TIME LIVE GUESTBOOK & WISHES BOARD */}
+              <div className="rsvp-messages-board">
+                <div className="messages-board-header">
+                  <div className="board-title-group">
+                    <span className="live-pulse-dot" title="مباشر"></span>
+                    <h5 className="messages-board-title">GUESTBOOK &amp; WISHES</h5>
+                  </div>
+                  <span className="messages-count-badge">
+                    {liveMessages.length} {liveMessages.length === 1 ? 'تهنئة' : 'تهاني'}
+                  </span>
+                </div>
+
+                <div className="messages-list-scroll">
+                  {messagesLoading ? (
+                    <div className="messages-loading">
+                      <span className="loading-spinner"></span>
+                      <span>جاري تحميل التهاني والرسائل...</span>
+                    </div>
+                  ) : liveMessages.length === 0 ? (
+                    <div className="messages-empty">
+                      <span>✨</span>
+                      <p>كن أول من يشارك العروسين فرحتهما ويترك تهنئة!</p>
+                    </div>
+                  ) : (
+                    liveMessages.map((item) => (
+                      <div key={item.id} className="message-item-card">
+                        <div className="message-item-top">
+                          <div className="message-sender-info">
+                            <span className="sender-avatar">
+                              {item.name ? item.name.trim().charAt(0).toUpperCase() : '♥'}
+                            </span>
+                            <strong className="sender-name">{item.name}</strong>
+                          </div>
+                          <div className="message-meta-right">
+                            {item.attendance === 'attending' && (
+                              <span className="attendance-tag attending">حاضر بإذن الله</span>
+                            )}
+                            {item.attendance === 'apologize' && (
+                              <span className="attendance-tag apologize">يعتذر عن الحضور</span>
+                            )}
+                            <span className="message-time">{formatMessageTime(item)}</span>
+                          </div>
+                        </div>
+                        {item.message && (
+                          <p className="message-content" dir="auto">
+                            {item.message}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </section>
 

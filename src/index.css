@@ -771,6 +771,27 @@ html, body {
   box-shadow: 0 10px 22px rgba(78, 14, 26, 0.4);
 }
 
+.rsvp-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.rsvp-error-banner {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: #FFF2F2;
+  border: 1px solid #EAA;
+  border-radius: 10px;
+  color: #921B27;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .rsvp-success-card {
   width: 100%;
   background: #FAF7F2;
@@ -797,6 +818,253 @@ html, body {
   color: var(--color-burgundy-deep);
   margin: 0;
   font-weight: 700;
+}
+
+.rsvp-success-desc {
+  font-size: 0.85rem;
+  color: var(--color-muted-text);
+  margin: 10px 0 16px 0;
+  line-height: 1.5;
+}
+
+.rsvp-send-another-btn {
+  background: transparent;
+  border: 1.5px dashed var(--color-burgundy-soft);
+  color: var(--color-burgundy-deep);
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: var(--font-arabic-body);
+}
+
+.rsvp-send-another-btn:hover {
+  background: var(--color-burgundy-light);
+  border-color: var(--color-burgundy-main);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================
+   LIVE GUESTBOOK & MESSAGES BOARD (REAL-TIME FIRESTORE)
+   ========================================================== */
+.rsvp-messages-board {
+  width: 100%;
+  margin-top: 24px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  border: 1px solid rgba(103, 21, 36, 0.12);
+  padding: 20px 18px;
+  box-shadow: 0 10px 30px rgba(78, 14, 26, 0.05);
+}
+
+.messages-board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(103, 21, 36, 0.1);
+}
+
+.board-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2ECC71;
+  box-shadow: 0 0 0 rgba(46, 204, 113, 0.4);
+  animation: livePulse 1.8s infinite;
+}
+
+@keyframes livePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(46, 204, 113, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+  }
+}
+
+.messages-board-title {
+  font-family: var(--font-cinzel);
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  color: var(--color-burgundy-deep);
+  font-weight: 700;
+  margin: 0;
+}
+
+.messages-count-badge {
+  background: var(--color-burgundy-light);
+  color: var(--color-burgundy-main);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(103, 21, 36, 0.15);
+}
+
+.messages-list-scroll {
+  max-height: 380px;
+  overflow-y: auto;
+  padding-left: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Custom Scrollbar for messages list */
+.messages-list-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.messages-list-scroll::-webkit-scrollbar-track {
+  background: rgba(103, 21, 36, 0.04);
+  border-radius: 4px;
+}
+.messages-list-scroll::-webkit-scrollbar-thumb {
+  background: rgba(103, 21, 36, 0.2);
+  border-radius: 4px;
+}
+.messages-list-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-burgundy-main);
+}
+
+.messages-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 10px;
+  color: var(--color-muted-text);
+  font-size: 0.8rem;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(103, 21, 36, 0.2);
+  border-top-color: var(--color-burgundy-main);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.messages-empty {
+  text-align: center;
+  padding: 28px 14px;
+  color: var(--color-muted-text);
+  font-size: 0.82rem;
+  background: rgba(250, 247, 242, 0.5);
+  border-radius: 16px;
+  border: 1px dashed rgba(103, 21, 36, 0.15);
+}
+
+.messages-empty span {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.message-item-card {
+  background: #FAF7F2;
+  border: 1px solid rgba(103, 21, 36, 0.1);
+  border-radius: 16px;
+  padding: 12px 14px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: fadeIn 0.35s ease;
+}
+
+.message-item-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(78, 14, 26, 0.06);
+}
+
+.message-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.message-sender-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sender-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-burgundy-main);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-cinzel);
+}
+
+.sender-name {
+  font-size: 0.85rem;
+  color: var(--color-burgundy-deep);
+  font-weight: 600;
+}
+
+.message-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attendance-tag {
+  font-size: 0.65rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.attendance-tag.attending {
+  background: rgba(46, 204, 113, 0.15);
+  color: #1E8449;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.attendance-tag.apologize {
+  background: rgba(231, 76, 60, 0.12);
+  color: #C0392B;
+  border: 1px solid rgba(231, 76, 60, 0.25);
+}
+
+.message-time {
+  font-size: 0.68rem;
+  color: var(--color-muted-text);
+  white-space: nowrap;
+}
+
+.message-content {
+  margin: 4px 0 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #3D282B;
+  word-break: break-word;
+  white-space: pre-wrap;
+  padding-right: 34px;
 }
 
 .reopen-envelope-chip {
